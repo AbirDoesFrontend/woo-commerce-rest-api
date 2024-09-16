@@ -19,3 +19,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Error fetching data from WooCommerce' }, { status: 500 });
   }
 }
+
+export async function POST(request) {
+  try {
+    const orderData = await request.json();
+    const response = await api.post("orders", orderData);
+    return NextResponse.json(response.data);
+  } catch (error) {
+    return NextResponse.json({ error: 'Error creating order in WooCommerce' }, { status: 500 });
+  }
+}

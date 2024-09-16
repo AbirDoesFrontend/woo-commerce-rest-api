@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -10,9 +10,9 @@ export default function Home() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("/api/woocommerce-proxy");
+        const response = await fetch('/api/woocommerce-proxy');
         if (!response.ok) {
-          throw new Error("Network response was not ok");
+          throw new Error('Network response was not ok');
         }
         const data = await response.json();
         setProducts(data);
@@ -28,15 +28,44 @@ export default function Home() {
   }, []);
 
   const addToCart = async (productId) => {
+    setCart(prevCart => ({
+      ...prevCart,
+      [productId]: (prevCart[productId] || 0) + 1
+    }));
+  };
+
+  const initiateCheckout = async () => {
     try {
-      setCart((prevCart) => ({
-        ...prevCart,
-        [productId]: (prevCart[productId] || 0) + 1,
+      const lineItems = Object.entries(cart).map(([productId, quantity]) => ({
+        product_id: parseInt(productId),
+        quantity
       }));
 
-      console.log(`Added product ${productId} to cart`);
+      const orderData = {
+        payment_method: "bacs",
+        payment_method_title: "Direct Bank Transfer",
+        set_paid: false,
+        line_items: lineItems,
+      };
+
+      const response = await fetch('/api/woocommerce-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error creating order');
+      }
+
+      const order = await response.json();
+      console.log('Order created:', order);
+      
+      window.location.href = order.checkout_url;
     } catch (err) {
-      console.error("Error adding to cart:", err);
+      console.error("Error initiating checkout:", err);
     }
   };
 
@@ -50,7 +79,9 @@ export default function Home() {
         {products.map((product) => (
           <li key={product.id}>
             {product.name} - ${product.price}
-            <button onClick={() => addToCart(product.id)}>Add to Cart</button>
+            <button onClick={() => addToCart(product.id)}>
+              Add to Cart
+            </button>
             {cart[product.id] && <span> (In cart: {cart[product.id]})</span>}
           </li>
         ))}
@@ -58,7 +89,7 @@ export default function Home() {
       <h2>Cart</h2>
       <ul>
         {Object.entries(cart).map(([productId, quantity]) => {
-          const product = products.find((p) => p.id.toString() === productId);
+          const product = products.find(p => p.id.toString() === productId);
           return (
             <li key={productId}>
               {product?.name} - Quantity: {quantity}
@@ -66,6 +97,7 @@ export default function Home() {
           );
         })}
       </ul>
+      <button onClick={initiateCheckout}>Proceed to Checkout</button>
     </div>
   );
 }
