@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -34,41 +35,6 @@ export default function Home() {
     }));
   };
 
-  const initiateCheckout = async () => {
-    try {
-      const lineItems = Object.entries(cart).map(([productId, quantity]) => ({
-        product_id: parseInt(productId),
-        quantity
-      }));
-
-      const orderData = {
-        payment_method: "bacs",
-        payment_method_title: "Direct Bank Transfer",
-        set_paid: false,
-        line_items: lineItems,
-      };
-
-      const response = await fetch('/api/woocommerce-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error creating order');
-      }
-
-      const order = await response.json();
-      console.log('Order created:', order);
-      
-      window.location.href = order.checkout_url;
-    } catch (err) {
-      console.error("Error initiating checkout:", err);
-    }
-  };
-
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -97,7 +63,9 @@ export default function Home() {
           );
         })}
       </ul>
-      <button onClick={initiateCheckout}>Proceed to Checkout</button>
+      <Link href="/checkout">
+        <button>Proceed to Checkout</button>
+      </Link>
     </div>
   );
 }
